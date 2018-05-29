@@ -13,6 +13,9 @@ import argparse
 from argparse import ArgumentParser
 from subprocess import call
 import signal
+from signal import SIGPIPE, SIG_DFL
+
+signal.signal(SIGPIPE, SIG_DFL)
 
 T_COLOR = {} if os.getenv('C', '1') == '0' else {
     'RED': '\033[31m',
@@ -92,12 +95,16 @@ def audio_player():
             play = b''.join(queue_audio)
             queue_audio.clear()
             stream.write(play)
+        if not do_process:
+            break
 
 
 def audio_getter():
     global brd
     while True:
         brd.mAudio.audio_stream(queue_audio)
+        if not do_process:
+            break
 
 
 def signal_handler(signal, frame):
@@ -105,7 +112,8 @@ def signal_handler(signal, frame):
     call(["mv", "/home/pi/.asoundrc_bkp", "/home/pi/.asoundrc"])
     call(["scp", "/etc/asound_bkp.conf", "/etc/asound.conf"])
     call(["rm", "/etc/asound_bkp.conf"])
-    sys.exit(0)
+    global do_process
+    do_process = False
 
 
 def main():
@@ -186,11 +194,18 @@ def main():
     stream.start()
     signal.signal(signal.SIGINT, signal_handler)
     while True:
-        brd.waitForNotifications(1.0)
+        if not do_process:
+            break
+        try:
+            brd.waitForNotifications(1.0)
+        except Exception as e:
+            pass
 
-    brd.disconnect()
     del brd
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print("{}: {}".format(type(e).__name__, e))
