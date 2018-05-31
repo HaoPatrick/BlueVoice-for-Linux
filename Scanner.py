@@ -1,7 +1,6 @@
 from bluepy.btle import DefaultDelegate
 import os
 
-
 if os.getenv('C', '1') == '0':
     ANSI_RED = ''
     ANSI_GREEN = ''
@@ -17,37 +16,34 @@ else:
     ANSI_CYAN = ANSI_CSI + '36m'
     ANSI_WHITE = ANSI_CSI + '37m'
     ANSI_OFF = ANSI_CSI + '0m'
-    
+
+
 class ScanPrint(DefaultDelegate):
 
-	def __init__(self, opts=0):
-		DefaultDelegate.__init__(self)
-		self.opts = opts
-		self.index=0
-		self.listDev=[]
-		
-	def getListDev(self):
-		return self.listDev
+    def __init__(self, opts=0):
+        DefaultDelegate.__init__(self)
+        self.opts = opts
+        self.index = 0
+        self.listDev = []
 
-	def handleDiscovery(self, dev, isNewDev, isNewData):
-		
-		dict_dev={}
-		if dev.rssi < -128:
-			return
-			
-		if not dev.connectable:
-			return
-		
-		for (sdid, desc, val) in dev.getScanData():
-			
-			if sdid in [8, 9]:
-				self.index=self.index+1
-				print(str(self.index) +') ' + str(ANSI_CYAN + val + ANSI_OFF) + ' --> ['+ ANSI_WHITE + dev.addr + ANSI_OFF + ']' + '(' + dev.addrType +') rssi: '+ str(dev.rssi) )
-				dict_dev['index']= self.index
-				dict_dev['name']= val
-				dict_dev['addr']= dev.addr
-				dict_dev['type_addr']= dev.addrType
-				self.listDev.append(dict_dev)
-		if not dev.scanData:
-			print ('\t(no data)')
-  
+    @property
+    def devices(self):
+        return self.listDev
+
+    def handleDiscovery(self, dev, is_new_device, is_new_data):
+        if dev.rssi < -128:
+            return
+        if not dev.connectable:
+            return
+        for (sdid, desc, val) in dev.getScanData():
+            if sdid in [8, 9]:
+                self.index = self.index + 1
+                print('{index}) {val} --> [{addr}]({addr_type}) rssi: {rssi}'.format(index=self.index,
+                                                                                     val=ANSI_CYAN + val + ANSI_OFF,
+                                                                                     addr=dev.addr,
+                                                                                     addr_type=dev.addrType,
+                                                                                     rssi=dev.rssi))
+                dict_dev = {'index': self.index, 'name': val, 'addr': dev.addr, 'type_addr': dev.addrType}
+                self.listDev.append(dict_dev)
+        if not dev.scanData:
+            print('\t(no data)')

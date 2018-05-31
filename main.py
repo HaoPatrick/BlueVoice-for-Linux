@@ -77,8 +77,7 @@ def init_audio(d_out, frq):
                                                                         sd.query_devices().index(
                                                                             sd.query_devices(device="STL_capture")),
                                                                         dev_freq, sd.default.channels) + ANSI_OFF)
-
-    if d_out == "alsa_playback":
+    elif d_out == "alsa_playback":
         dev_index = sd.query_devices().index(sd.query_devices(device="default"))
         dev_freq = sd.query_devices(device="STL_playback")["default_samplerate"]
         print("DEVICE: {}  INDEX:  {}  RATE:  {}".format(
@@ -86,6 +85,9 @@ def init_audio(d_out, frq):
 
     sd.default.device = dev_index
     stream = sd.RawOutputStream(samplerate=dev_freq)
+
+
+do_process = True
 
 
 def audio_player():
@@ -127,7 +129,8 @@ def main():
     parser = argparse.ArgumentParser(description='BV_Link_rbpi3 application')
     # Required positional argument
     parser.add_argument('output_config', type=str,
-                        help='[alsa_playback] to playback directly to the speaker. [stl_capture] to create a virtual microphone')
+                        help='[alsa_playback] to playback directly to the speaker.'
+                             ' [stl_capture] to create a virtual microphone')
     parser.add_argument('freq_config', type=int, help='[16000] to set 16KHz frequency.[8000] to set 8KHz frequency')
 
     args = parser.parse_args()
@@ -142,11 +145,12 @@ def main():
     print(ANSI_RED + "Scanning for devices..." + ANSI_OFF)
     try:
         hci0 = 0
-        scanner = Scanner(hci0).withDelegate(sc).scan(timeout_sc)
-    except BTLEException:
+        Scanner(hci0).withDelegate(sc).scan(timeout_sc)
+    except BTLEException as e:
+        print("/dev/hci0 failed with {}, try /dev/hci1".format(e))
         hci0 = 1
-        scanner = Scanner(hci0).withDelegate(sc).scan(timeout_sc)
-    devices = sc.getListDev()
+        Scanner(hci0).withDelegate(sc).scan(timeout_sc)
+    devices = sc.devices
 
     if len(devices) > 0:
         print("Type the index of device to connect (eg. " + str(devices[0].get('index')) +
@@ -169,7 +173,7 @@ def main():
     # connection
     for d in devices:
         if d.get('index') == n_dev:
-            print('Connecting to ' + d.get('name') + "...")
+            print('Connecting to {name}...', d.get('name'))
             brd = stl.Node(d.get('addr'), d.get('type_addr'))
     print("Connected")
 
