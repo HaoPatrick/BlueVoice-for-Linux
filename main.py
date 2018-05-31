@@ -1,16 +1,11 @@
 import Node as stl
 import Scanner as scr
 from bluepy.btle import UUID, Scanner, BTLEException
-import struct
-import sys
-import getopt
-import math
-import random
 from collections import deque
 from threading import Thread
 import os
 import argparse
-from argparse import ArgumentParser
+from util import c_str
 from subprocess import call
 import signal
 from signal import SIGPIPE, SIG_DFL
@@ -141,7 +136,7 @@ def main():
   
   # scanning phase
   sc = scr.ScanPrint()
-  print(ANSI_RED + "Scanning for devices..." + ANSI_OFF)
+  print(c_str("Scanning for devices...", 'RED'))
   try:
     hci0 = 0
     Scanner(hci0).withDelegate(sc).scan(timeout_sc)
@@ -170,10 +165,9 @@ def main():
     exit()
   
   # connection
-  for d in devices:
-    if d.get('index') == n_dev:
-      print('Connecting to {name}...', d.get('name'))
-      brd = stl.Node(d.get('addr'), d.get('type_addr'))
+  device = devices[n_dev - 1]
+  print('Connecting to {name}...', device.get('name'))
+  brd = stl.Node(device.get('addr'), device.get('type_addr'))
   print("Connected")
   
   brd.syncAudio.enable()
